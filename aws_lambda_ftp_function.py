@@ -3,7 +3,7 @@ import boto3
 import os
 import ftplib
 
-#AWS S3 Bucket name
+# AWS S3 Bucket name
 bucket = ""
 
 # FTP Credentials
@@ -11,12 +11,12 @@ ip = ""
 username = ""
 password = ""
 remote_directory = ""
-# In Lambda, you only have access to /tmp folder. If you want to download files to a directory inside /tmp
-# please change the follow to: /tmp/folder_name
-local_directory = "/tmp/"
+local_directory = ""
+ftp_archive_folder = ""
+
 
 # This function will check if a given name/path is a folder to avoid downloading it
-def is_ftp_folder(filename):
+def is_ftp_folder(ftp, filename):
     try:
         res = ftp.sendcmd('MLST ' + filename)
         if 'type=dir;' in res:
@@ -26,7 +26,7 @@ def is_ftp_folder(filename):
     except:
         return False
 
-# This is required by AWS lambda. Main function should be called lambda_handler
+
 def lambda_handler(event, context):
     # Connecting to FTP
     try:
@@ -41,34 +41,37 @@ def lambda_handler(event, context):
         print("Error changing to directory {}".format(remote_directory))
 
     try:
-        files = ftp.nlst()
+        if not is_ftp_folder(ftp, ftp_archive_folder):
+            print("Creating archive directory {}".format(ftp_archive_folder))
+            ftp.mkd(ftp_archive_folder)
     except:
-        print("Error listing files in {} directory".format(remote_directory))
-
+        print("Error creting {} directory".format(ftp_archive_folder))
 
     if not os.path.exists(local_directory):
         os.makedirs(local_directory)
         print("Created local directory {}".format(local_directory))
 
-    # AWS Python SDK
-    s3_client = boto3.resource('s3')
-
     for file in files:
-        if not is_ftp_folder(file):
+        if not is_ftp_folder(ftp, file):
             try:
                 if os.path.isfile(local_directory + "/" + file):
                     print("File {} exists locally, skip".format(file))
                     try:
-                        s3_client.meta.client.upload_file(local_directory + "/" + file, bucket, file)
-                        print("File {} uploaded to S3".format(file))
+                        ftp.rename(file, ftp_archive_folder + "/" + file)
                     except:
-                        print("Error uploading file {} !".format(file))
+                        print("Can not move file {} to archive folder".format(file))
+
                 else:
                     print("Downloading {} ....".format(file))
                     ftp.retrbinary("RETR " + file, open(local_directory + "/" + file, 'wb').write)
                     try:
                         s3_client.meta.client.upload_file(local_directory + "/" + file, bucket, file)
                         print("File {} uploaded to S3".format(file))
+
+                        try:
+                            ftp.rename(file, ftp_archive_folder + "/" + file)
+                        except:
+                            print("Can not move file {} to archive folder".format(file))
                     except:
                         print("Error uploading file {} !".format(file))
             except:
