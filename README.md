@@ -28,7 +28,7 @@ Flow diagram:
 4. Name it `lambda_ftp_to_s3`
 5. Select AWS Lambda.
 6. Select `AWSLambdaFullAccess` and click Next.
-7. This will then show you a review screen like below. Make sure to save ***Role ARN***
+7. This will then show you a review screen like below.
 ![](images/lambda_arn.png)
 
 ### Step 3
