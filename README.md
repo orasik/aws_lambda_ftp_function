@@ -8,6 +8,7 @@ The following How-To will demonstrate how to use AWS Lambda service to:
 - Save files to S3
 
 Later this will trigger another event on Lambda to parse these files and send data to API Gateway.
+**Make sure that S3 and Lambda are on the same region, otherwise Lambda event will not work.**
 
 Flow diagram:
 
