@@ -11,9 +11,9 @@ ip = ""
 username = ""
 password = ""
 remote_directory = ""
-local_directory = ""
 ftp_archive_folder = ""
 
+s3_client = boto3.resource('s3')
 
 # This function will check if a given name/path is a folder to avoid downloading it
 def is_ftp_folder(ftp, filename):
@@ -47,14 +47,12 @@ def lambda_handler(event, context):
     except:
         print("Error creting {} directory".format(ftp_archive_folder))
 
-    if not os.path.exists(local_directory):
-        os.makedirs(local_directory)
-        print("Created local directory {}".format(local_directory))
+    files = ftp.nlst()
 
     for file in files:
         if not is_ftp_folder(ftp, file):
             try:
-                if os.path.isfile(local_directory + "/" + file):
+                if os.path.isfile("/tmp/" + file):
                     print("File {} exists locally, skip".format(file))
                     try:
                         ftp.rename(file, ftp_archive_folder + "/" + file)
@@ -63,9 +61,9 @@ def lambda_handler(event, context):
 
                 else:
                     print("Downloading {} ....".format(file))
-                    ftp.retrbinary("RETR " + file, open(local_directory + "/" + file, 'wb').write)
+                    ftp.retrbinary("RETR " + file, open("/tmp/" + file, 'wb').write)
                     try:
-                        s3_client.meta.client.upload_file(local_directory + "/" + file, bucket, file)
+                        s3_client.meta.client.upload_file("/tmp/" + file, bucket, file)
                         print("File {} uploaded to S3".format(file))
 
                         try:
