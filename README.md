@@ -1,4 +1,4 @@
-#AWS Lambda FTP Function
+# AWS Lambda FTP Function
 
 The following How-To will demonstrate how to use AWS Lambda service to:
 
